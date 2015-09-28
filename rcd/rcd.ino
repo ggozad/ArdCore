@@ -1,13 +1,17 @@
 //  constants related to the Arduino Nano pin use
 const int clkIn = 2;           // the digital (clock) input
-const int digPin[2] = {3, 4};  // the digital output pins
+const int clockPin = 3;  // the digital output pins
+const int resetPin = 4;
 const int pinOffset = 5;       // the first DAC pin (from 5-12)
 
-//  variables for interrupt handling of the clock input
-volatile int clkState = LOW;
+const int resetIn = 3;             // The analog reset input
 
-unsigned long lastClock = 0;
-unsigned long time = 0;
+
+// variables for interrupt handling of the clock input
+volatile int clkState = LOW;
+int resetState = LOW;
+
+unsigned long time = 0, lastClock = 0, lastReset = 0;
 
 // Set initial dt to 500millis i.e. 120bpm
 unsigned long dt = 500, dt1 = 500, dt2 = 500, dt3 = 500, prevDt = 500;
@@ -30,10 +34,10 @@ void setup() {
     pinMode(clkIn, INPUT);
 
     // set up the digital outputs
-    for (int i=0; i<2; i++) {
-        pinMode(digPin[i], OUTPUT);
-        digitalWrite(digPin[i], LOW);
-    }
+    pinMode(clockPin, OUTPUT);
+    digitalWrite(clockPin, LOW);
+    pinMode(resetPin, OUTPUT);
+    digitalWrite(resetPin, LOW);
 
     // set up the expander output pins
     for (int i=0; i<8; i++) {
@@ -51,8 +55,12 @@ void loop()
     time = millis();
 
     if ((time - lastClock) > gateDt) {
-        digitalWrite(digPin[0], LOW);
-        digitalWrite(digPin[1], LOW);
+        digitalWrite(clockPin, LOW);
+    }
+
+    if ((time - lastReset) > gateDt) {
+        resetState = LOW;
+        digitalWrite(resetPin, LOW);
     }
 
     // When a clock is received...
@@ -62,8 +70,7 @@ void loop()
         clkState = LOW;
         dt = time - lastClock;
 
-        digitalWrite(digPin[0], HIGH);
-        digitalWrite(digPin[1], HIGH);
+        digitalWrite(clockPin, HIGH);
 
         lastClock = time;
         dt = avgDt(dt);
@@ -83,6 +90,13 @@ void loop()
         } else if ((time - lastTicks[i]) > gateDt) {
             digitalWrite(pinOffset+i, LOW);
         }
+    }
+
+    // // Handle reset, when D0 is > 2.5V
+    if (analogRead(resetIn) > 511 && resetState == LOW) {
+        resetState = HIGH;
+        digitalWrite(resetPin, HIGH);
+        lastReset = time;
     }
 }
 
