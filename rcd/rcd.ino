@@ -97,6 +97,10 @@ void loop()
         resetState = HIGH;
         digitalWrite(resetPin, HIGH);
         lastReset = time;
+        for (i=0; i<8; i++) {
+            lastTicks[i] = time;
+            digitalWrite(pinOffset+i, HIGH);
+        }
     }
 }
 
