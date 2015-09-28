@@ -1,11 +1,11 @@
 //  constants related to the Arduino Nano pin use
-const int clkIn = 2;           // the digital (clock) input
+const int clkIn = 2;     // the digital (clock) input
 const int clockPin = 3;  // the digital output pins
 const int resetPin = 4;
-const int pinOffset = 5;       // the first DAC pin (from 5-12)
+const int pinOffset = 5; // the first DAC pin (from 5-12)
 
-const int resetIn = 3;             // The analog reset input
-
+const int resetIn = 3;   // The analog reset input
+const int clockMultIn = 2;
 
 // variables for interrupt handling of the clock input
 volatile int clkState = LOW;
@@ -17,6 +17,7 @@ unsigned long time = 0, lastClock = 0, lastReset = 0;
 unsigned long dt = 500, dt1 = 500, dt2 = 500, dt3 = 500, prevDt = 500;
 
 // Clock multipliers
+float clockMultiplier = 1;
 float multipliers[8] = {4.0, 3.0, 2.0, 1.0, 1.0, 1.0/2.0, 1.0/3.0, 1.0/4.0};
 
 unsigned int clockDts[8] = {500, 500, 500, 500, 500, 500, 500, 500};
@@ -69,7 +70,9 @@ void loop()
         // Reset for the next clock
         clkState = LOW;
         dt = time - lastClock;
-
+        // Bring the clock in the range of 0.25 to 2.0 of whatever it is
+        clockMultiplier = ((analogRead(clockMultIn) >> 7) + 1.0) / 4.0;
+        dt = dt * clockMultiplier;
         digitalWrite(clockPin, HIGH);
 
         lastClock = time;
