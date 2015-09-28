@@ -8,11 +8,19 @@ volatile int clkState = LOW;
 
 unsigned long lastClock = 0;
 unsigned long time = 0;
-// Set dt to 500millis i.e. 120bpm
+
+// Set initial dt to 500millis i.e. 120bpm
 unsigned long dt = 500, dt1 = 500, dt2 = 500, dt3 = 500, prevDt = 500;
+
+// Clock multipliers
 float multipliers[8] = {4.0, 3.0, 2.0, 1.0, 1.0, 1.0/2.0, 1.0/3.0, 1.0/4.0};
+
 unsigned int clockDts[8] = {500, 500, 500, 500, 500, 500, 500, 500};
+
+// The last time an output was high on the expander
 unsigned long lastTicks[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+// The gate duration, 10ms by default.
 unsigned int gateDt = 10;
 
 void setup() {
@@ -27,7 +35,7 @@ void setup() {
         digitalWrite(digPin[i], LOW);
     }
 
-    // set up the 8-bit DAC output pins
+    // set up the expander output pins
     for (int i=0; i<8; i++) {
         pinMode(pinOffset+i, OUTPUT);
         digitalWrite(pinOffset+i, LOW);
@@ -42,17 +50,32 @@ void loop()
 
     time = millis();
 
+    if ((time - lastClock) > gateDt) {
+        digitalWrite(digPin[0], LOW);
+        digitalWrite(digPin[1], LOW);
+    }
+
+    // When a clock is received...
     if (clkState == HIGH) {
-        clkState = LOW;  // reset for the next clock
+
+        // Reset for the next clock
+        clkState = LOW;
         dt = time - lastClock;
+
+        digitalWrite(digPin[0], HIGH);
+        digitalWrite(digPin[1], HIGH);
+
         lastClock = time;
         dt = avgDt(dt);
+
+        // Update the dts when the trigers will clock if the new clock dt has changed.
         if (prevDt != dt) {
             updateClockDts();
         }
         prevDt = dt;
     }
 
+    // Out to the expander gates.
     for (i=0; i<8; i++) {
         if (time - lastTicks[i] > clockDts[i]) {
             lastTicks[i] = time;
@@ -80,9 +103,3 @@ void clockInterupt()
 {
     clkState = HIGH;
 }
-
-
-
-
-
-
