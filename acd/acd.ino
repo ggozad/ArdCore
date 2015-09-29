@@ -18,8 +18,8 @@ unsigned long dt = 500, dt1 = 500, dt2 = 500, dt3 = 500, prevDt = 500;
 
 // Clock multipliers
 float clockMultiplier = 1;
-float multipliers[8] = {4.0, 3.0, 2.0, 1.0, 1.0, 1.0/2.0, 1.0/3.0, 1.0/4.0};
-
+float multipliers[8];
+unsigned int rotation = 0;
 unsigned int clockDts[8] = {500, 500, 500, 500, 500, 500, 500, 500};
 
 // The last time an output was high on the expander
@@ -47,6 +47,7 @@ void setup() {
     }
 
     attachInterrupt(0, clockInterupt, RISING);
+    updateMultipliers();
 }
 
 void loop()
@@ -110,6 +111,13 @@ void loop()
 void updateClockDts() {
     for (int i=0; i<8; i++) {
         clockDts[i] = dt * multipliers[i];
+    }
+}
+
+void updateMultipliers() {
+    for (int i=0; i<4; i++) {
+        multipliers[i] = 4.0 - i + rotation;
+        multipliers[i+4] = 1.0/(i + 1.0 + rotation);
     }
 }
 
