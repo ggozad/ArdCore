@@ -6,6 +6,7 @@ const int pinOffset = 5; // the first DAC pin (from 5-12)
 
 const int resetIn = 3;   // The analog reset input
 const int clockMultIn = 2;
+int rotationIn = 0, newRotation = 0;
 
 // variables for interrupt handling of the clock input
 volatile int clkState = LOW;
@@ -48,6 +49,7 @@ void setup() {
 
     attachInterrupt(0, clockInterupt, RISING);
     updateMultipliers();
+    updateClockDts();
 }
 
 void loop()
@@ -106,18 +108,35 @@ void loop()
             digitalWrite(pinOffset+i, HIGH);
         }
     }
+
+    // Calculate rotation if necessary
+    newRotation = analogRead(rotationIn) >> 4;
+    if (newRotation != rotation) {
+        rotation = newRotation;
+        updateMultipliers();
+        updateClockDts();
+    }
 }
 
 void updateClockDts() {
+    Serial.print("DT: ");
+    Serial.println(dt);
+    Serial.print("DTs: ");
     for (int i=0; i<8; i++) {
         clockDts[i] = dt * multipliers[i];
+        Serial.println(clockDts[i]);
     }
+
 }
 
 void updateMultipliers() {
     for (int i=0; i<4; i++) {
         multipliers[i] = 4.0 - i + rotation;
         multipliers[i+4] = 1.0/(i + 1.0 + rotation);
+    }
+    Serial.println("Multipliers");
+    for (int i=0;i<8;i++) {
+        Serial.println(multipliers[i]);
     }
 }
 
