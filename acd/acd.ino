@@ -6,6 +6,7 @@ const int pinOffset = 5; // the first DAC pin (from 5-12)
 
 const int resetIn = 3;   // The analog reset input
 const int clockMultIn = 2;
+int rotationIn = 0, newRotation = 0;
 
 // variables for interrupt handling of the clock input
 volatile int clkState = LOW;
@@ -18,8 +19,8 @@ unsigned long dt = 500, dt1 = 500, dt2 = 500, dt3 = 500, prevDt = 500;
 
 // Clock multipliers
 float clockMultiplier = 1;
-float multipliers[8] = {4.0, 3.0, 2.0, 1.0, 1.0, 1.0/2.0, 1.0/3.0, 1.0/4.0};
-
+float multipliers[8];
+unsigned int rotation = 0;
 unsigned int clockDts[8] = {500, 500, 500, 500, 500, 500, 500, 500};
 
 // The last time an output was high on the expander
@@ -47,6 +48,8 @@ void setup() {
     }
 
     attachInterrupt(0, clockInterupt, RISING);
+    updateMultipliers();
+    updateClockDts();
 }
 
 void loop()
@@ -105,11 +108,35 @@ void loop()
             digitalWrite(pinOffset+i, HIGH);
         }
     }
+
+    // Calculate rotation if necessary
+    newRotation = analogRead(rotationIn) >> 4;
+    if (newRotation != rotation) {
+        rotation = newRotation;
+        updateMultipliers();
+        updateClockDts();
+    }
 }
 
 void updateClockDts() {
+    Serial.print("DT: ");
+    Serial.println(dt);
+    Serial.print("DTs: ");
     for (int i=0; i<8; i++) {
         clockDts[i] = dt * multipliers[i];
+        Serial.println(clockDts[i]);
+    }
+
+}
+
+void updateMultipliers() {
+    for (int i=0; i<4; i++) {
+        multipliers[i] = 4.0 - i + rotation;
+        multipliers[i+4] = 1.0/(i + 1.0 + rotation);
+    }
+    Serial.println("Multipliers");
+    for (int i=0;i<8;i++) {
+        Serial.println(multipliers[i]);
     }
 }
 
